@@ -22,13 +22,18 @@
 */
 package com.ailegorreta.cacheservice.service
 
+import com.ailegorreta.cacheservice.config.ServiceConfig
 import com.ailegorreta.cacheservice.model.SystemRate
 import com.ailegorreta.cacheservice.repository.SystemRateRepository
 import com.ailegorreta.commons.event.EventDTO
+import com.ailegorreta.commons.event.EventType
 import com.ailegorreta.commons.utils.HasLogger
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.DoubleNode
 import com.fasterxml.jackson.databind.node.TextNode
+import org.springframework.cloud.stream.function.StreamBridge
+import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.util.concurrent.CountDownLatch
@@ -39,11 +44,16 @@ import java.util.concurrent.CountDownLatch
  *
  *  @author rlh
  *  @project : cache-service
- *  @date August 2023
+ *  @date September 2023
  */
 @Service
-class EventService(private val systemRateRepository: SystemRateRepository,
+class EventService(private val streamBridge: StreamBridge,
+                   private val serviceConfig: ServiceConfig,
+                   private val mapper: ObjectMapper,
+                   private val systemRateRepository: SystemRateRepository,
                    private val cacheService: CacheService): HasLogger {
+
+    private val coreName = "cache"
 
     var latch = CountDownLatch(1)
 
@@ -66,20 +76,58 @@ class EventService(private val systemRateRepository: SystemRateRepository,
 
             logger.debug("Modify a system variable $name with value:$rate")
             systemRateRepository.save(SystemRate (name.asText(), rate =  BigDecimal.valueOf(rate.asDouble())))
+            sendEvent(eventDTO.correlationId ?: "NA", "core-service",
+                      "INVALIDA_CACHE_VARIABLE", datos)
             latch.countDown()       // just for testing purpose
         } else if (eventDTO.eventName.contains("FECHA_SISTEMA")) {
             logger.debug("Modify a system date invalidate all redis system dates")
             cacheService.invalidateSystemDates()
+            sendEvent(eventDTO.correlationId ?: "NA", "core-service",
+                      "INVALIDA_CACHE_FECHAS", "sin datos")
             latch.countDown()       // just for testing purpose
         } else if (eventDTO.eventName.contains("TIPO_DOCUMENTO")) {
             logger.debug("Modify a document type invalidate all redis document types")
             cacheService.invalidateDocumentTypes()
+            sendEvent(eventDTO.correlationId ?: "NA", "core-service",
+                    "INVALIDA_CACHE_TIPO_DOCUMENTOS", "sin datos")
             latch.countDown()       // just for testing purpose
         }
         return eventDTO
 
 
         return null
+    }
+
+    /**
+     * This method sends an audit events when the cache is invalidated.
+     * It used Spring cloud stream, i.e., streamBridge instance
+     */
+    fun sendEvent(correlationId: String,
+                  userName: String,
+                  eventName: String,
+                  value: Any): EventDTO {
+        val eventBody = mapper.readTree(mapper.writeValueAsString(value))
+        val parentNode = mapper.createObjectNode()
+
+        // Add the permit where notification will be sent
+        parentNode.put("notificaFacultad", "NOTIFICA_CACHE")
+        // parentNode.put("datos",  eventBody!!.toString())
+        parentNode.set<JsonNode>("datos", eventBody!!)
+
+        val event = EventDTO(correlationId = correlationId ?: "NA",
+                            eventType = EventType.DB_STORE,
+                            username = userName,
+                            eventName = eventName,
+                            applicationName = serviceConfig.appName!!,
+                            coreName = coreName,
+                            eventBody = parentNode)
+
+        if (streamBridge.send("producer-out-0", event))
+            logger.debug("Send the cache event {}", value)
+        else
+            logger.debug("ERROR: could not send the cache event {}", value)
+
+        return event
     }
 
     fun resetLatch() {

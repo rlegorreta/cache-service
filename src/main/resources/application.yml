@@ -34,11 +34,16 @@ spring:
         consumer:
           useNativeDecoding: true
       function:
-        definition: consumerParamService;producerTest
+        definition: consumerParamService;producer;producerTest
       kafka:
         binder:
           brokers: http://localhost:9092
         bindings:
+          producer-out-0:
+            producer:
+              configuration:
+                key.serializer: org.apache.kafka.common.serialization.StringSerializer
+                value.serializer: com.ailegorreta.commons.event.EventDTOSerializer
           producerTest-out-0:
             producer:
               configuration:
@@ -50,6 +55,8 @@ spring:
                 key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
                 value.deserializer: com.ailegorreta.commons.event.EventDTODeSerializer
       bindings:
+        producer-out-0:
+          destination: audit
         producerTest-out-0:
           destination: param-service
         consumerParamService-in-0:

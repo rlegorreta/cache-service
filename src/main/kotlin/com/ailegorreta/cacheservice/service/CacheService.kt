@@ -99,35 +99,6 @@ class CacheService(val paramService: ParamService,
                                         } else
                                             Mono.error(DataRetrievalFailureException("No variable $name found in SystemRate"))
                                     })
-
-
-
-
-
-
-/*
-
-        val result = systemRateRepository.existsByName(name).block()
-
-        if (result!!) {
-            val systemRate = systemRateRepository.findByName(name).block()
-
-            logger.debug("Got variable {} with value {} from cache", name, systemRate!!.rate)
-
-            return systemRate
-        }
-        val res = paramService.getFromParamsSystemRate(name)
-
-        if (res != null) {
-            logger.debug("Got variable {} with value {} from microservice. Store it in cache", name, res.rate)
-
-            return cacheSystemRate(res)
-        }
-        logger.error("No variable $name found in SystemRate")
-
-        return null
-
- */
     }
 
     /**

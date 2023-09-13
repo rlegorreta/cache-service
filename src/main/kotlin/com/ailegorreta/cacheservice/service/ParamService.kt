@@ -48,7 +48,7 @@ import reactor.core.publisher.Mono
  */
 @Service
 class ParamService(@Qualifier("client_credentials_load_balanced")  val webClient: WebClient,
-    // ^ could use @Qualifier("client_credentials_load_balanced) for load balanced calls
+                   // ^ could use @Qualifier("client_credentials_load_balanced) for load balanced calls
                    val serviceConfig: ServiceConfig): HasLogger {
     fun uri() = UriComponentsBuilder.fromUriString(serviceConfig.getParamProvider())
 
