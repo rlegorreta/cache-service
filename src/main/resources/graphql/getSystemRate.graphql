@@ -1,0 +1,6 @@
+query getSysRate($input: String!) {
+  systemRate(name: $input) {
+       name
+       rate
+  }
+}

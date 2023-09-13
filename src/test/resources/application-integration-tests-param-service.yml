@@ -1,0 +1,23 @@
+audit-service:
+  testing: true
+eureka:
+  client:
+    registerWithEureka: false
+logging:
+  level:
+    root: INFO
+spring:
+  data:
+    redis:
+      database: 0
+      password: mypass
+      timeout: 60000
+      jedis:
+        pool:
+          enabled: true
+# Back-end microservices
+microservice:
+  param:
+    # provider-uri: http://localhost:8072/param   # use the gateway
+    provider-uri: http://localhost:8350         # no use gateway, because is backoffice microservice communication
+                                                # For testing we prefer to skip the gateway.

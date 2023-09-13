@@ -1,0 +1,7 @@
+query getAllSystemDates {
+  systemDates {
+       id
+       name
+       day
+  }
+}

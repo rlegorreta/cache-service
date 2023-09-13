@@ -1,0 +1,134 @@
+server:
+  port: 8351
+  shutdown: graceful
+  netty:
+    connection-timeout: 2s
+    idle-timeout: 15s
+
+spring:
+  application:
+    name: cache-service
+  lifecycle:
+    timeout-per-shutdown-phase: 15s
+  main:
+    allow-bean-definition-overriding: false
+  config:
+    import: "optional:configserver:"   # Imports configuration data from a config server when available
+  cloud:
+    config:
+      uri: http://localhost:8071
+      request-connect-timeout: 5000   # Timeout on waiting to connect to the config server (ms)
+      request-read-timeout: 5000      # Timeout on waiting to read configuration data from the config server (ms)
+      fail-fast: true                 # In production, set to true. Makes a failure to connect to the config server fatal
+      retry:
+        max-attempts: 6
+        initial-interval: 1000        # Initial retry interval for backoff (ms)
+        max-interval: 2000            # Maximum retry interval for backoff (ms)
+        multiplier: 1.1               # Multiplier to compute the next interval
+    function:
+      definition: consumerParamService
+    stream:
+      default:
+        producer:
+          useNativeEncoding: true
+        consumer:
+          useNativeDecoding: true
+      function:
+        definition: consumerParamService;producerTest
+      kafka:
+        binder:
+          brokers: http://localhost:9092
+        bindings:
+          producerTest-out-0:
+            producer:
+              configuration:
+                key.serializer: org.apache.kafka.common.serialization.StringSerializer
+                value.serializer: com.ailegorreta.commons.event.EventDTOSerializer
+          consumerParamService-in-0:
+            consumer:
+              configuration:
+                key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+                value.deserializer: com.ailegorreta.commons.event.EventDTODeSerializer
+      bindings:
+        producerTest-out-0:
+          destination: param-service
+        consumerParamService-in-0:
+          destination: param-service      # no '-audit' postfix. Read from audit-service
+          group: group-cache-service
+  profiles:
+    active: local
+  security:
+    oauth2:
+      client:
+        registration:
+          cache-service-client-credentials:
+            provider: spring
+            client-id: cache-service
+            client-secret: cache-service-secret
+            authorization-grant-type: client_credentials
+            scope: cartera.read,iam.compania,acme.facultad,iam.facultad,sys.facultad
+            # ^ for now we just only use param microservice (i.e., sys.facultad)
+            # but in the future more microservices will be added (i.e., more scopes)
+            client-name: cache-service-client-credentials
+        provider:
+          spring:
+            issuer-uri: http://auth-service:9000
+            # ^ for localNoDocker & localCmdLine an 'auth' must be declared in hosts file
+        rest:
+          client-id: cache-service-client-credentials
+      resourceserver:
+        jwt:
+          issuer-uri: http://auth-service:9000
+  data:
+    redis: # Redis is used by storing in memory all the request per user and therefore
+      # limit to a maximum request per user per second(e.g., 10 request per second)
+      connect-timeout: 2s       # time limit for a connection to be established
+      host: localhost           # local default Redis host
+      port: 6379                # local default Redis port
+      timeout: 1s               # Time limit for a response to be received
+      password: 50M3*S3cured*Pa55W0rd
+      database: 0
+
+# Also needed by AuthServerUserLookupService
+security:
+  clientId: cache-service
+
+logging:
+  level:
+    com:
+      netflix: WARN
+      springframework:
+        web: WARN
+        core:
+          codec:
+            StringDecoder: TRACE
+      ailegorreta:
+        cacheservice: DEBUG
+  pattern:
+    level: '%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]'
+
+# Back-end microservices
+microservice:
+  param:
+    provider-uri: http://localhost:8072/param   # use the gateway
+    # provider-uri: http://localhost:8350       # no use gateway, because is backoffice microservice communication
+    # we prefer to skip the gateway. Depends on system security
+
+info:
+  system: Marketplace AILegorreta
+
+# Monitoring with actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: cache, env, health, headdump, info, loggers, mapping, prometheus
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      probes:
+        enabled: true
+
+cache-service:
+  testing: false

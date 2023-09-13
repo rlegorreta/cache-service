@@ -1,0 +1,17 @@
+audit-service:
+  testing: true
+eureka:
+  client:
+    registerWithEureka: false
+logging:
+  level:
+    root: INFO
+spring:
+  data:
+    redis:
+      database: 0
+      password: mypass
+      timeout: 60000
+      jedis:
+        pool:
+          enabled: true

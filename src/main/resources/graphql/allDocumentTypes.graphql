@@ -1,0 +1,7 @@
+query getAllDocumentTypes {
+  documentTypes {
+       id
+       name
+       expiration
+  }
+}
