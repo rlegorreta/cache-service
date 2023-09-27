@@ -46,33 +46,31 @@ class CacheController(val cacheService: CacheService): HasLogger {
 
     @GetMapping("/sysvar", produces = ["application/json"])
     fun getVariableSystem(@RequestParam(required=true) nombre: String): Mono<BigDecimal> {
-        logger.debug("Se requiere la variable del sistema: $nombre")
-
         return cacheService.getSystemRate(nombre)
                            .flatMap { systemRate -> Mono.just(systemRate.rate) }
                            .switchIfEmpty(Mono.just(BigDecimal.ZERO))
     }
 
     @GetMapping("/day", produces = ["application/json"])
-    fun getDay(@RequestParam(required=true) days: Int): LocalDate {
-        logger.debug("Se requiere el día después de : $days")
+    suspend fun getDay(@RequestParam(required=true) days: Int): LocalDate {
+        logger.debug("Se requiere el dia del calendario despues de : $days dia(s)")
 
         return cacheService.getDay(days)
     }
 
     @GetMapping("/addday", produces = ["application/json"])
-    fun addDay(@RequestParam(required=true) days: Int): LocalDate {
+    suspend fun addDay(@RequestParam(required=true) days: Int): LocalDate {
         return cacheService.addDay(days)
     }
 
     @GetMapping("/holiday", produces = ["application/json"])
-    fun isHoliday(@RequestParam(required=true) day: LocalDate): Boolean {
+    suspend fun isHoliday(@RequestParam(required=true) day: LocalDate): Boolean {
         logger.debug("Se valida si es festivo $day")
         return cacheService.isHoliday(day)
     }
 
     @GetMapping("/doctypes", produces = ["application/json"])
-    fun allDocumentTypes(): Mono<List<DocumentType>> {
+    suspend fun allDocumentTypes(): List<DocumentType> {
         return cacheService.getDocumentTypes()
     }
 
@@ -81,9 +79,25 @@ class CacheController(val cacheService: CacheService): HasLogger {
      * Kafka message from the param service and not via REST
      */
     @PostMapping("/invalid", produces = ["application/json"])
-    fun invalidateDates(): LocalDate {
+    fun invalidateAll(): LocalDate {
         logger.debug("Se invalidan las fechas y documentTypes en el caché ")
         cacheService.invalidateSystemDates()
+        cacheService.invalidateDocumentTypes()
+
+        return LocalDate.now()
+    }
+
+    @PostMapping("/invalidDates", produces = ["application/json"])
+    fun invalidateDates(): LocalDate {
+        logger.debug("Se invalidan las fechas en el caché ")
+        cacheService.invalidateSystemDates()
+
+        return LocalDate.now()
+    }
+
+    @PostMapping("/invalidDocuments", produces = ["application/json"])
+    fun invalidateDocumentTypes(): LocalDate {
+        logger.debug("Se invalidan los documentTypes en el caché ")
         cacheService.invalidateDocumentTypes()
 
         return LocalDate.now()

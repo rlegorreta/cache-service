@@ -33,6 +33,9 @@ import reactor.core.publisher.Mono;
  * note : redis does not support reactive repositories (and will not) because:
  * https://github.com/spring-projects/spring-data-redis/issues/1405
  *
+ * note2: This repository does not utilize Kotlin coroutines because we just ask for one variable value
+*          (except for DocumentType and/or SystemDates)  and with the reactive Mono &isnecessary.
+ *
  * @project cache-server
  * @author rlh
  * @date September 2023

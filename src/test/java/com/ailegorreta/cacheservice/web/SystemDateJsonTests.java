@@ -1,11 +1,3 @@
-package com.ailegorreta.cacheservice.web;
-
-import com.ailegorreta.cacheservice.model.DayType;
-import com.ailegorreta.cacheservice.model.SystemDate;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.json.JsonTest;
-import org.springframework.boot.test.json.JacksonTester;
 /* Copyright (c) 2023, LegoSoft Soluciones, S.C.
  * All rights reserved.
  *
@@ -28,6 +20,14 @@ import org.springframework.boot.test.json.JacksonTester;
  *
  *  Developed 2023 by LegoSoftSoluciones, S.C. www.legosoft.com.mx
  */
+package com.ailegorreta.cacheservice.web;
+
+import com.ailegorreta.cacheservice.model.DayType;
+import com.ailegorreta.cacheservice.model.SystemDate;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.json.JsonTest;
+import org.springframework.boot.test.json.JacksonTester;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 
@@ -39,7 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Example for a JsonTest for some Redis DTOs, many others can be added
  *
- * In this case we check that DateTime is serializable correclty in SystemDate DTP
+ * In this case we check that DateTime is serializable correctly in SystemDate DTO
  *
  * @project cache-service
  * @author rlh
@@ -82,8 +82,8 @@ public class SystemDateJsonTests {
                 }
                 """;
         assertThat(json.parse(content))
-                .usingRecursiveComparison()
-                .isEqualTo(systemDate);
+                        .usingRecursiveComparison()
+                        .isEqualTo(systemDate);
     }
 }
 

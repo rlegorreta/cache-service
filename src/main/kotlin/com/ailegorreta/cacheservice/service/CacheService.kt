@@ -26,18 +26,15 @@ import com.ailegorreta.cacheservice.model.*
 import com.ailegorreta.cacheservice.repository.DocumentTypeRepository
 import com.ailegorreta.cacheservice.repository.SystemDateRepository
 import com.ailegorreta.cacheservice.repository.SystemRateRepository
-import com.ailegorreta.cacheservice.repository.impl.DocumentTypeRepositoryImpl
 import com.ailegorreta.commons.utils.HasLogger
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.dao.DataRetrievalFailureException
-import org.springframework.dao.DuplicateKeyException
-import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.stereotype.Service
-import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.util.function.Function
 import kotlin.math.abs
 
 /**
@@ -59,25 +56,6 @@ class CacheService(val paramService: ParamService,
                    @Qualifier("documentTypeRepositoryImpl") val documentTypeRepository: DocumentTypeRepository) : HasLogger {
     private var today: LocalDate? = null
     private var systemDates: List<SystemDate> = emptyList()
-
-    /**
-     * Methods for SystemRates. System Rates example are all in Redis and just invalidate per Rate
-     */
-
-    /**
-     * Method that saves a systemRates inside the redis database. It is calles after the systemRate is read
-     * from param microservice, or when en event is received that some system variable was changed.
-     */
-    fun cacheSystemRate(systemRate: SystemRate): SystemRate? {
-        return try {
-            logger.debug("save the variable ${systemRate.name} in Redid database")
-            systemRateRepository.save(systemRate).block()
-            systemRate
-        } catch (e: Exception) {
-            logger.error("No se pudo almacenar correctamente la variable ${systemRate.name} en el cache: ${e.message}")
-            null
-        }
-    }
 
     /**
      * Method that gets a systemRate from redis (if exists) or from param service
@@ -109,20 +87,19 @@ class CacheService(val paramService: ParamService,
     /**
      * Reads all system dates from Redis  (if exists) otherwise it returns an empty list
      */
-    private fun systemDatesCache(): List<SystemDate> {
+    private suspend fun systemDatesCache(): List<SystemDate> {
         if (systemDates.isEmpty())
             try {
                 val res = mutableListOf<SystemDate>()
 
-                systemDateRepository.findAll().collectList().subscribe(res::addAll)
-                // ^ Do not use block() because for testing purpose we are inside a blocking statement
+                systemDateRepository.kFindAll().collect{ res.add(it) }
+                // ^ We use Kotlin coroutines to block this
                 if (res.isEmpty()) {
                     systemDates = paramService.allSystemDates()
-                    logger.debug("Read from  param microservice ${systemDates.size} and save them Redis cache")
-                    systemDateRepository.saveAll(systemDates)
+                    logger.info("Read from  param microservice ${systemDates.size} and save them Redis cache")
+                    systemDateRepository.kSaveAll(systemDates)
                 } else
                     systemDates = res
-                logger.debug("Read all system dates from cached. Read ${systemDates.count()} dates")
             } catch (e: Exception) {
                 logger.error("No se pudo leer correctamente las fechas del sistema en el cache: ${e.message}")
                 systemDates = emptyList()
@@ -148,7 +125,7 @@ class CacheService(val paramService: ParamService,
     /**
      * Gets today from the systemDates (if exists) otherwise return the machine date
      */
-    private fun getToday(): LocalDate {
+    private suspend fun getToday(): LocalDate {
         if (today != null) return today!!
 
         val systemDate = systemDatesCache().find { systemDate -> systemDate.name == DayType.HOY }
@@ -164,7 +141,7 @@ class CacheService(val paramService: ParamService,
     /**
      * Validate if the date is holiday: is weekend or a holiday is declared in systemDates list.
      */
-    fun isHoliday(day: LocalDate) =
+    suspend fun isHoliday(day: LocalDate) =
                 day.dayOfWeek.equals(DayOfWeek.SATURDAY) ||
                 day.dayOfWeek.equals(DayOfWeek.SUNDAY) ||
                 (systemDatesCache().find{ systemDate -> systemDate.name == DayType.FESTIVO &&
@@ -173,7 +150,7 @@ class CacheService(val paramService: ParamService,
     /**
      * This method gets today or a work day plus or minus 'days'. It validates that the day is not a holiday
      */
-    fun getDay(days: Int): LocalDate {
+    suspend fun getDay(days: Int): LocalDate {
         logger.info("Try to calculate the day after $days passed")
 
         var result = getToday()
@@ -197,7 +174,7 @@ class CacheService(val paramService: ParamService,
     /**
      * This method adds from today a number of working days
      */
-    fun addDay(days: Int): LocalDate {
+    suspend fun addDay(days: Int): LocalDate {
         logger.debug("Try to calculate the day after $days working days")
 
         var result = getToday()
@@ -224,12 +201,12 @@ class CacheService(val paramService: ParamService,
     /**
      * Reads all document types from Redis  (if exists) otherwise it returns an empty list
      */
-    private fun documentTypesCache(): Flux<DocumentType> {
+    private suspend fun documentTypesCache(): Flow<DocumentType> {
         return try {
-            documentTypeRepository.findAll()
+            documentTypeRepository.kFindAll()
         } catch(e: Exception) {
             logger.error("No se pudo leer correctamente los tipos de documentos del sistema en el cache: ${e.message}")
-            Flux.error( DataRetrievalFailureException("No se pudo leer correctamente los tipos de documentos del sistema en el cache"))
+            emptyList<DocumentType>().asFlow()
         }
     }
 
@@ -248,22 +225,19 @@ class CacheService(val paramService: ParamService,
     /**
      * This method gets all de documentType from cache, if not it read from the microservice
      */
-    fun getDocumentTypes(): Mono<List<DocumentType>> {
+    suspend fun getDocumentTypes(): List<DocumentType> {
         logger.debug("Read the document types")
+        val documentTypes = mutableListOf<DocumentType>()
 
-        return documentTypesCache().collectList()
-                                    .flatMap {
-                                        val result = if (it.isEmpty()) {
-                                            logger.debug("Read from param microservice")
-                                            val documentTypes = paramService.allDocumentTypes()
+        documentTypesCache().collect(documentTypes::add)
 
-                                            documentTypeRepository.saveAll(documentTypes).collectList()
-                                        } else {
-                                            logger.debug("Read from cache ${it.size}")
-                                            Mono.just(it)
-                                        }
-                                        result
-                                    }
+        if  (documentTypes.isEmpty()) {
+            val docs = paramService.allDocumentTypes()
+            logger.info("Read from  param microservice ${docs.size} and save them Redis cache")
+            documentTypeRepository.kSaveAll(docs).collect(documentTypes::add)
+        }
+
+        return documentTypes
     }
 
 }

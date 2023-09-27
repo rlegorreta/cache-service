@@ -12,6 +12,7 @@ spring:
     timeout-per-shutdown-phase: 15s
   main:
     allow-bean-definition-overriding: false
+    web-application-type: reactive
   config:
     import: "optional:configserver:"   # Imports configuration data from a config server when available
   cloud:
@@ -111,6 +112,7 @@ logging:
             StringDecoder: TRACE
       ailegorreta:
         cacheservice: DEBUG
+        resourceserver: DEBUG
   pattern:
     level: '%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]'
 

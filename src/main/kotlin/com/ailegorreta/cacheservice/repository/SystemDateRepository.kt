@@ -20,12 +20,13 @@
  *
  *  Developed 2023 by LegoSoftSoluciones, S.C. www.legosoft.com.mx
  */
-package com.ailegorreta.cacheservice.repository;
+package com.ailegorreta.cacheservice.repository
 
-import com.ailegorreta.cacheservice.model.DayType;
-import com.ailegorreta.cacheservice.model.SystemDate;
-import org.springframework.data.repository.reactive.ReactiveCrudRepository;
-import reactor.core.publisher.Mono;
+import com.ailegorreta.cacheservice.model.DayType
+import com.ailegorreta.cacheservice.model.SystemDate
+import kotlinx.coroutines.flow.Flow
+import org.springframework.data.repository.reactive.ReactiveCrudRepository
+import reactor.core.publisher.Mono
 
 /**
  * SystemDate redis repository. This repository is a CRUD reactive repository. Since Redis reactive does not
@@ -39,7 +40,24 @@ import reactor.core.publisher.Mono;
  * @project cache-service
  * @author rlh
  * @date September 2023
- */public interface SystemDateRepository extends ReactiveCrudRepository<SystemDate, String> {
-    Mono<SystemDate> findByName(DayType name);
-    Mono<Boolean> existsByName(DayType name);
+ */
+interface SystemDateRepository : ReactiveCrudRepository<SystemDate, String> {
+    fun findByName(name: DayType): Mono<SystemDate>
+    fun existsByName(name: DayType): Mono<Boolean>
+
+    /**
+     * Kotlin Coroutines to handle reactive Redis Crud Repository
+     */
+    suspend fun kFindById(id: String): SystemDate?
+    suspend fun kFindAll(): Flow<SystemDate>
+    suspend fun <S : SystemDate> kSave(systemDate: S): S
+    suspend fun kFindByName(name: DayType): SystemDate?
+    suspend fun kExistsById(id: String): Boolean
+    suspend fun kExistsByName(name: DayType): Boolean
+    suspend fun kCount(): Long
+    suspend fun kDeleteAll(): Void
+    suspend fun kDelete(systemDate: SystemDate): Void
+    suspend fun kDeleteById(id: String): Void
+    suspend fun kSaveAll(iterable: Iterable<SystemDate>): Flow<SystemDate>
+    suspend fun kDeleteAll(iterable: Iterable<SystemDate>): Void
 }

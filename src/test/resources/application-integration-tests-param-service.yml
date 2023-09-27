@@ -2,6 +2,7 @@ audit-service:
   testing: true
 eureka:
   client:
+    enabled: false
     registerWithEureka: false
 logging:
   level:

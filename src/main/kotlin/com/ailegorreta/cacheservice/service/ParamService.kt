@@ -32,6 +32,7 @@ import org.springframework.http.MediaType
 import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.awaitBody
 import org.springframework.web.util.UriComponentsBuilder
 import reactor.core.publisher.Mono
 
@@ -47,7 +48,7 @@ import reactor.core.publisher.Mono
  *
  */
 @Service
-class ParamService(@Qualifier("client_credentials_load_balanced")  val webClient: WebClient,
+open class ParamService(@Qualifier("client_credentials")  val webClient: WebClient,
                    // ^ could use @Qualifier("client_credentials_load_balanced) for load balanced calls
                    val serviceConfig: ServiceConfig): HasLogger {
     fun uri() = UriComponentsBuilder.fromUriString(serviceConfig.getParamProvider())
@@ -74,7 +75,7 @@ class ParamService(@Qualifier("client_credentials_load_balanced")  val webClient
     /**
      * Reads all systemDates from param microservice. Just the first time or when a systemDate is modified
      */
-    fun allSystemDates(): List<SystemDate> {
+    suspend fun allSystemDates(): List<SystemDate> {
         val graphQLRequestBody = GraphqlRequestBody(GraphqlSchemaReaderUtil.getSchemaFromFileName("allSystemDates"))
 
         val res = webClient.post()
@@ -84,11 +85,10 @@ class ParamService(@Qualifier("client_credentials_load_balanced")  val webClient
                             .body(Mono.just(graphQLRequestBody), GraphqlRequestBody::class.java)
                             .attributes(ServerOAuth2AuthorizedClientExchangeFilterFunction.clientRegistrationId(serviceConfig.clientId + "-client-credentials"))
                             .retrieve()
-                            .bodyToMono(GraphqlResponseSystemDates::class.java)
-                            .block()
+                            .awaitBody<GraphqlResponseSystemDates>()
 
-        if (res == null) {
-            logger.error("No se pudo leer la fecha del día de hoy el micro servicio param")
+        if (res.data.systemDates.isEmpty() ) {
+            logger.error("No se pudo leer las fechas del día de hoy el micro servicio param")
 
             return emptyList()
         }
@@ -98,7 +98,7 @@ class ParamService(@Qualifier("client_credentials_load_balanced")  val webClient
     /**
      * Reads all document types from param microservice. Just the first time or when a documentType is modified
      */
-    fun allDocumentTypes(): List<DocumentType> {
+    suspend fun allDocumentTypes(): List<DocumentType> {
         val graphQLRequestBody = GraphqlRequestBody(GraphqlSchemaReaderUtil.getSchemaFromFileName("allDocumentTypes"))
         val res = webClient.post()
                             .uri(uri().path("/param/graphql").build().toUri())
@@ -106,8 +106,7 @@ class ParamService(@Qualifier("client_credentials_load_balanced")  val webClient
                             .body(Mono.just(graphQLRequestBody), GraphqlRequestBody::class.java)
                             .attributes(ServerOAuth2AuthorizedClientExchangeFilterFunction.clientRegistrationId(serviceConfig.clientId + "-client-credentials"))
                             .retrieve()
-                            .bodyToMono(GraphqlResponseDocumentTypes::class.java)
-                            .block()
+                            .awaitBody<GraphqlResponseDocumentTypes>()
 
         return res!!.data.documentTypes
     }

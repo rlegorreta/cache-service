@@ -69,10 +69,10 @@ class EventService(private val streamBridge: StreamBridge,
         logger.info("Maybe we invalidate Redis database with the event $eventDTO")
         if (eventDTO.eventName.contains("VARIABLE_SISTEMA")) {
             // we need to update the cache system variable
-            var eventBody = eventDTO.eventBody as JsonNode      // as HashMap<*,*>
-            var datos = eventBody["datos"] as JsonNode          // as HashMap<*,*>
-            var name = datos["name"] as TextNode
-            var rate = datos["rate"] as DoubleNode
+            val eventBody = eventDTO.eventBody as JsonNode      // as HashMap<*,*>
+            val datos = eventBody["datos"] as JsonNode          // as HashMap<*,*>
+            val name = datos["name"] as TextNode
+            val rate = datos["rate"] as DoubleNode
 
             logger.debug("Modify a system variable $name with value:$rate")
             systemRateRepository.save(SystemRate (name.asText(), rate =  BigDecimal.valueOf(rate.asDouble())))

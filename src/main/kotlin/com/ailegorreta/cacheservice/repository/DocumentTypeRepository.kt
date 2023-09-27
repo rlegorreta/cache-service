@@ -16,15 +16,17 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- *  DocumentTypeRepository.java
+ *  DocumentTypeRepository.kt
  *
  *  Developed 2023 by LegoSoftSoluciones, S.C. www.legosoft.com.mx
  */
-package com.ailegorreta.cacheservice.repository;
+package com.ailegorreta.cacheservice.repository
 
-import com.ailegorreta.cacheservice.model.DocumentType;
-import org.springframework.data.repository.reactive.ReactiveCrudRepository;
-import reactor.core.publisher.Mono;
+import com.ailegorreta.cacheservice.model.DocumentType
+import com.ailegorreta.cacheservice.model.SystemDate
+import kotlinx.coroutines.flow.Flow
+import org.springframework.data.repository.reactive.ReactiveCrudRepository
+import reactor.core.publisher.Mono
 
 /**
  * DocumentType redis repository. This repository is a CRUD reactive repository. Since Redis reactive does not
@@ -37,9 +39,23 @@ import reactor.core.publisher.Mono;
  * @author rlh
  * @date September 2023
  */
+interface DocumentTypeRepository : ReactiveCrudRepository<DocumentType, String> {
+    fun findByName(name: String): Mono<DocumentType>
+    fun existsByName(name: String): Mono<Boolean>
 
-public interface DocumentTypeRepository extends ReactiveCrudRepository<DocumentType, String> {
-    Mono<DocumentType> findByName(String name);
-
-    Mono<Boolean> existsByName(String name);
+    /**
+     * Kotlin Coroutines to handle reactive Redis Crud Repository
+     */
+    suspend fun kFindById(id: String): DocumentType?
+    suspend fun kFindAll(): Flow<DocumentType>
+    suspend fun <D: DocumentType> kSave(documentType: D): D
+    suspend fun kFindByName(name: String): DocumentType?
+    suspend fun kExistsById(id: String): Boolean
+    suspend fun kExistsByName(name: String): Boolean
+    suspend fun kCount(): Long
+    suspend fun kDeleteAll(): Void
+    suspend fun kDelete(documentType: DocumentType): Void
+    suspend fun kDeleteById(id: String): Void
+    suspend fun kSaveAll(iterable: Iterable<DocumentType>): Flow<DocumentType>
+    suspend fun kDeleteAll(iterable: Iterable<DocumentType>): Void
 }

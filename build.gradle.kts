@@ -41,6 +41,7 @@ extra["testcontainersVersion"] = "1.17.3"
 extra["otelVersion"] = "1.26.0"
 extra["ailegorreta-kit-version"] = "2.0.0"
 extra["redis-test-container-version"] = "1.4.6"
+extra["coroutines-version"] = "1.7.3"
 
 dependencies {
 	implementation("org.springframework.cloud:spring-cloud-starter-config")
@@ -71,6 +72,8 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
 
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
+	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${property("coroutines-version")}")
+	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${property("coroutines-version")}")
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
 	implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8")
@@ -90,6 +93,7 @@ dependencies {
 	testImplementation("org.springframework.cloud:spring-cloud-stream-test-binder")
 	testImplementation("io.projectreactor:reactor-test")				// this is for web-flux testing
 	testImplementation("com.squareup.okhttp3:mockwebserver")
+	testImplementation("io.mockk:mockk:1.9.3")
 
 	testImplementation("org.springframework.kafka:spring-kafka-test")
 	testImplementation("io.projectreactor:reactor-test")

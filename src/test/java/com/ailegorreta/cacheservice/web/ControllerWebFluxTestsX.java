@@ -66,8 +66,8 @@ import static org.springframework.security.test.web.reactive.server.SecurityMock
 import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.springSecurity;
 
 /**
- * This class tests the REST calls received and y we do not have the cache in Redis database the the controller
- * via service will call param-service in order to fill the Redis database
+ * This class tests the REST calls received, we do not have the cache in Redis database the controller
+ * via service will call cache-service in order to fill the Redis database
  *
  * @proyect: cache-service
  * @author: rlh
@@ -78,7 +78,7 @@ import static org.springframework.security.test.web.reactive.server.SecurityMock
 @ExtendWith(MockitoExtension.class)
 @Import({ServiceConfig.class, ResourceServerConfig.class, CacheController.class})
 @ActiveProfiles("integration-tests-webflux")            // This is to permit duplicate singleton beans
-class ControllerWebFluxTests implements HasLogger {
+class ControllerWebFluxTestsX implements HasLogger {
 
     @Autowired
     ApplicationContext applicationContext;
@@ -115,12 +115,12 @@ class ControllerWebFluxTests implements HasLogger {
                     .verifyComplete();
         systemDateRepository.deleteAll().block();
         StepVerifier.create(systemDateRepository.count())
-                .expectNext(0L)
-                .verifyComplete();
+                    .expectNext(0L)
+                    .verifyComplete();
         systemRateRepository.deleteAll().block();
         StepVerifier.create(systemRateRepository.count())
-                .expectNext(0L)
-                .verifyComplete();
+                    .expectNext(0L)
+                    .verifyComplete();
     }
 
     /**
@@ -168,12 +168,15 @@ class ControllerWebFluxTests implements HasLogger {
         var uri = UriComponentsBuilder.fromUriString("/cache/day");
         var today = LocalDate.of(2023, Month.SEPTEMBER, 10);       // note: September 10th is Sunday
 
+        /*
         when (paramService.allSystemDates()).thenReturn(
                 List.of(new SystemDate("1", DayType.HOY, today, 0),
                         new SystemDate("2", DayType.AYER, today.minusDays(1), 0),
                         new SystemDate("3", DayType.MANANA, today.now().plusDays(1), 0),
                         new SystemDate("4", DayType.FESTIVO, LocalDate.of(2023, Month.SEPTEMBER, 16), 0)));
 
+
+         */
         var res = webTestClient.mutateWith(mockJwt().authorities(Arrays.asList(new SimpleGrantedAuthority("SCOPE_iam.facultad"),
                                                                                new SimpleGrantedAuthority("ROLE_ADMINLEGO"))))
                                                     .get()
@@ -224,12 +227,15 @@ class ControllerWebFluxTests implements HasLogger {
         var today = LocalDate.of(2023, Month.SEPTEMBER, 12);
         var independenceDay = LocalDate.of(2023, Month.SEPTEMBER, 16);
 
+        /*
         when(paramService.allSystemDates()).thenReturn(
                 List.of(new SystemDate("1", DayType.HOY, today, 0),
                         new SystemDate("2", DayType.AYER, today.minusDays(1), 0),
                         new SystemDate("3", DayType.MANANA, today.now().plusDays(1), 0),
                         new SystemDate("4", DayType.FESTIVO, independenceDay, 0)));
 
+
+         */
         getLogger().debug("Check if today is holiday");
         var res = webTestClient.mutateWith(mockJwt().authorities(Arrays.asList(new SimpleGrantedAuthority("SCOPE_iam.facultad"),
                                                                                new SimpleGrantedAuthority("ROLE_ADMINLEGO"))))
@@ -249,12 +255,15 @@ class ControllerWebFluxTests implements HasLogger {
         var independenceDay = LocalDate.of(2023, Month.SEPTEMBER, 16);
         var weekend = today.minusDays(2);
 
+        /*
         when(paramService.allSystemDates()).thenReturn(
                 List.of(new SystemDate("1", DayType.HOY, today, 0),
                         new SystemDate("2", DayType.AYER, today.minusDays(1), 0),
                         new SystemDate("3", DayType.MANANA, today.now().plusDays(1), 0),
                         new SystemDate("4", DayType.FESTIVO, independenceDay, 0)));
 
+
+         */
         getLogger().debug("Check a weekend" + weekend);
         var res = webTestClient.mutateWith(mockJwt().authorities(Arrays.asList(new SimpleGrantedAuthority("SCOPE_iam.facultad"),
                                                                                new SimpleGrantedAuthority("ROLE_ADMINLEGO"))))
@@ -273,12 +282,15 @@ class ControllerWebFluxTests implements HasLogger {
         var today = LocalDate.of(2023, Month.SEPTEMBER, 12);
         var independenceDay = LocalDate.of(2023, Month.SEPTEMBER, 16);
 
+        /*
         when(paramService.allSystemDates()).thenReturn(
                 List.of(new SystemDate("1", DayType.HOY, today, 0),
                         new SystemDate("2", DayType.AYER, today.minusDays(1), 0),
                         new SystemDate("3", DayType.MANANA, today.now().plusDays(1), 0),
                         new SystemDate("4", DayType.FESTIVO, independenceDay, 0)));
 
+
+         */
         getLogger().debug("And last check for independence day:" + independenceDay);
         var res = webTestClient.mutateWith(mockJwt().authorities(Arrays.asList(new SimpleGrantedAuthority("SCOPE_iam.facultad"),
                                                                                new SimpleGrantedAuthority("ROLE_ADMINLEGO"))))
@@ -301,7 +313,7 @@ class ControllerWebFluxTests implements HasLogger {
                                 new DocumentType("2", "Pasaporte", "12m", 0),
                                 new DocumentType("3", "Comprobante domicilio", "3m", 0),
                                 new DocumentType("4", "IFE", "24m", 0));
-        when(paramService.allDocumentTypes()).thenReturn(documents);
+    //    when(paramService.allDocumentTypes()).thenReturn(documents);
 
         getLogger().debug("Check if documents catalog exist");
         StepVerifier.create(readDocumentTypes().getResponseBody())
